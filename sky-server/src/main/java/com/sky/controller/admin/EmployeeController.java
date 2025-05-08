@@ -1,6 +1,7 @@
 package com.sky.controller.admin;
 
 import com.sky.constant.JwtClaimsConstant;
+import com.sky.constant.StatusConstant;
 import com.sky.dto.EmployeeDTO;
 import com.sky.dto.EmployeeLoginDTO;
 import com.sky.entity.Employee;
@@ -68,6 +69,7 @@ public class EmployeeController {
      *
      * @return
      */
+    @ApiOperation("退出登录")
     @PostMapping("/logout")
     public Result<String> logout() {
         return Result.success();
@@ -79,12 +81,14 @@ public class EmployeeController {
      */
     @PostMapping
     @ApiOperation("新增员工")
-    public Result<String> save(EmployeeDTO employeeDTO) {
+    public Result<String> save(@RequestBody EmployeeDTO employeeDTO) {
         log.info("新增员工：{}", employeeDTO);
 
         // 添加之前看看数据库是否含有账号
-        employeeService.addEmployee(employeeDTO);
-        return Result.success();
+        if (employeeService.addEmployee(employeeDTO).equals(StatusConstant.ENABLE)){
+            return Result.success();
+        }
+        return Result.error("账号已存在，员工添加失败！");
     }
 
 }
