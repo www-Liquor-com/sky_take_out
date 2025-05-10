@@ -1,25 +1,35 @@
 package com.sky.service.impl;
 
+import com.github.pagehelper.Page;
+import com.github.pagehelper.PageHelper;
 import com.sky.constant.MessageConstant;
 import com.sky.constant.PasswordConstant;
 import com.sky.constant.StatusConstant;
 import com.sky.context.BaseContext;
 import com.sky.dto.EmployeeDTO;
 import com.sky.dto.EmployeeLoginDTO;
+import com.sky.dto.EmployeePageQueryDTO;
+import com.sky.dto.PasswordEditDTO;
 import com.sky.entity.Employee;
 import com.sky.exception.AccountLockedException;
 import com.sky.exception.AccountNotFoundException;
 import com.sky.exception.PasswordErrorException;
 import com.sky.mapper.EmployeeMapper;
+import com.sky.result.PageResult;
 import com.sky.service.EmployeeService;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.http.HttpResponse;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
 import java.time.LocalDateTime;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
 
 @Slf4j
 @Service
@@ -27,6 +37,10 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     @Autowired
     private EmployeeMapper employeeMapper;
+    @Autowired
+    private HttpServletRequest httpServletRequest;
+    @Autowired
+    private HttpSession httpSession;
 
     /**
      * 员工登录
@@ -90,8 +104,14 @@ public class EmployeeServiceImpl implements EmployeeService {
 
             // 后期来完善
             // TODO 后期需要改为当前登录的id
-            employee.setCreateUser(BaseContext.getCurrentId());
-            employee.setUpdateUser(BaseContext.getCurrentId());
+//            employee.setCreateUser(BaseContext.getCurrentId());
+//            employee.setUpdateUser(BaseContext.getCurrentId());
+
+            httpSession = httpServletRequest.getSession();
+            Long empId = (Long) httpSession.getAttribute("empId");
+            employee.setCreateUser(empId);
+            employee.setUpdateUser(empId);
+
 
             Integer i = employeeMapper.addEmployee(employee);
             if (i.equals(StatusConstant.ENABLE)) {
@@ -101,6 +121,51 @@ public class EmployeeServiceImpl implements EmployeeService {
             return StatusConstant.DISABLE;
         }
 
+
+    }
+
+    /**
+     * 员工分页查询
+     * @param employeePageQueryDTO
+     * @return
+     */
+
+    @Override
+    public PageResult pageQuery(EmployeePageQueryDTO employeePageQueryDTO) {
+        // select * from employee limit 0, 10
+//        String name = String.valueOf(httpSession.getAttribute("empId"));
+//        System.out.println("name:" + name);
+//        log.info("empId: {}",name);
+        PageHelper.startPage(employeePageQueryDTO.getPage(), employeePageQueryDTO.getPageSize());
+        Page<Employee> page = employeeMapper.pageQuery(employeePageQueryDTO);
+
+//        String name = (String)httpSession.getAttribute("empId");
+//        System.out.println("name:" + name);
+
+        Long total = page.getTotal();
+        List<Employee> records = page.getResult();
+
+        return new PageResult(total, records);
+    }
+
+
+    /**
+     * 更改员工账号的状态
+     * @param id
+     * @return
+     */
+    @Override
+    public Integer updateStates(Long id) {
+        return employeeMapper.updateStatus(id);
+    }
+
+    @Override
+    public Integer updatePassword(PasswordEditDTO passwordEditDTO) {
+        String oldPassword = passwordEditDTO.getOldPassword();
+        if (!employeeMapper.getByUserId(passwordEditDTO.getEmpId()).getPassword().equals(oldPassword)){
+            return StatusConstant.DISABLE;
+        }
+        return employeeMapper.updatePassword(passwordEditDTO.getEmpId(), passwordEditDTO.getNewPassword());
 
     }
 
