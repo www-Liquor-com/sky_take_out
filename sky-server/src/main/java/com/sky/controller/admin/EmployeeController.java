@@ -1,6 +1,7 @@
 package com.sky.controller.admin;
 
 import com.sky.constant.JwtClaimsConstant;
+import com.sky.constant.MessageConstant;
 import com.sky.constant.StatusConstant;
 import com.sky.dto.EmployeeDTO;
 import com.sky.dto.EmployeeLoginDTO;
@@ -119,8 +120,11 @@ public class EmployeeController {
 
         if (employeeService.updatePassword(passwordEditDTO).equals(StatusConstant.ENABLE)){
             return Result.success();
-        }else {
-            return Result.error("密码修改失败！");
+        } else if (employeeService.updatePassword(passwordEditDTO).equals(StatusConstant.DISABLE)) {
+            return Result.error(MessageConstant.UPDATE_PASSWORD_ERROR);
+        } else {
+            return Result.error(MessageConstant.OLD_PASSWORD_ERROR);
         }
     }
+
 }
